@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FC ONLINE 이적시장 수수료 계산기</title>
+    <style>
+        /* 넥슨 FC 온라인 공식 사이트 스타일 가이드 반영 */
+        :root {
+            --bg-dark: #111116;
+            --panel-bg: #181920;
+            --border-color: #262833;
+            --accent-green: #00ff66;
+            --text-main: #ffffff;
+            --text-muted: #8e92a4;
+            --btn-active: #222531;
+        }
+
+        body {
+            /* 공식 사이트의 깔끔하고 정돈된 고딕 폰트 느낌 재현 */
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .calc-wrapper {
+            width: 100%;
+            max-width: 460px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px; /* 공식 사이트 특유의 각진 느낌 살림 */
+            padding: 30px 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .label-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 500;
+        }
+
+        /* 금액 입력창 스타일 */
+        .price-input-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .price-input-box input {
+            width: 100%;
+            background-color: #0d0e12;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 14px 45px 14px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 4px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .price-input-box input:focus {
+            border-color: #44495e;
+        }
+
+        .price-input-box .unit-tag {
+            position: absolute;
+            right: 14px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .live-hint {
+            font-size: 12px;
+            color: var(--accent-green);
+            margin-top: 6px;
+            min-height: 18px;
+        }
+
+        /* 혜택 설정 토글 버튼 스타일 */
+        .benefit-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-toggle {
+            flex: 1;
+            background-color: #0d0e12;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-toggle.active {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background-color: rgba(0, 255, 102, 0.05);
+        }
+
+        /* 쿠폰 카운터 스타일 (+/- 버튼으로 조절) */
+        .coupon-counter {
+            display: flex;
+            background-color: #0d0e12;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .btn-count {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            width: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            font-weight: 300;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-count:hover {
+            background-color: var(--btn-active);
+        }
+
+        .coupon-value {
+            flex: 1;
+            text-align: center;
+            padding: 14px 0;
+            font-size: 15px;
+            font-weight: 600;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+
+        /* 결과 창 스타일 */
+        .result-panel {
+            background-color: #0d0e12;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 28px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .result-row.total {
+            border-top: 1px solid var(--border-color);
+            padding-top: 14px;
+            margin-bottom: 0;
+            font-size: 16px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .result-row.total .highlight {
+            color: var(--accent-green);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calc-wrapper">
+    <h1>이적시장 수수료 계산기</h1>
+
+    <div class="input-group">
+        <span class="label-title">판매 금액 입력</span>
+        <div class="price-input-box">
+            <input type="number" id="price-input" placeholder="숫자만 입력 (예: 3.5)" step="0.1" min="0" oninput="calculate()">
+            <span class="unit-tag">조 BP</span>
+        </div>
+        <div class="live-hint" id="live-hint"></div>
+    </div>
+
+    <div class="input-group">
+        <span class="label-title">공통 혜택 설정</span>
+        <div class="benefit-buttons">
+            <button type="button" id="btn-pc" class="btn-toggle active" onclick="toggleBenefit('pc')">PC방 혜택 (30%)</button>
+            <button type="button" id="btn-top" class="btn-toggle active" onclick="toggleBenefit('top')">TOP CLASS (20%)</button>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <span class="label-title">수수료 쿠폰 설정</span>
+        <div class="coupon-counter">
+            <button type="button" class="btn-count" onclick="adjustCoupon(-10)">-</button>
+            <div class="coupon-value" id="coupon-display">쿠폰 미적용 (0%)</div>
+            <button type="button" class="btn-count" onclick="adjustCoupon(10)">+</button>
+        </div>
+    </div>
+
+    <div class="result-panel">
+        <div class="result-row">
+            <span>총 할인율</span>
+            <span id="res-discount">50%</span>
+        </div>
+        <div class="result-row">
+            <span>실제 적용 수수료율</span>
+            <span id="res-fee-rate">20%</span>
+        </div>
+        <div class="result-row total">
+            <span>최종 수령 금액</span>
+            <span class="highlight" id="res-receive">0 BP</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 전역 상태 변수 관리
+    let hasPc = true;
+    let hasTop = true;
+    let couponRate = 0; // 기본 0%
+
+    // 혜택 온/오프 토글 함수
+    function toggleBenefit(type) {
+        if (type === 'pc') {
+            hasPc = !hasPc;
+            document.getElementById('btn-pc').classList.toggle('active', hasPc);
+        } else if (type === 'top') {
+            hasTop = !hasTop;
+            document.getElementById('btn-top').classList.toggle('active', hasTop);
+        }
+        calculate();
+    }
+
+    // 쿠폰 10% 단위 조절 함수 (최소 0%, 최대 50% 제한)
+    function adjustCoupon(amount) {
+        couponRate += amount;
+        if (couponRate < 0) couponRate = 0;
+        if (couponRate > 50) couponRate = 50; // 피파 쿠폰 최고치인 50%로 락(Lock)
+
+        const display = document.getElementById('coupon-display');
+        if (couponRate === 0) {
+            display.innerText = "쿠폰 미적용 (0%)";
+        } else {
+            display.innerText = `${couponRate}% 할인 쿠폰`;
+        }
+        calculate();
+    }
+
+    // 숫자를 조/억 단위 한글 포맷으로 변환
+    function formatKorean(num) {
+        if (num === 0) return "0 BP";
+        let jo = Math.floor(num / 1000000000000);
+        let eok = Math.floor((num % 1000000000000) / 100000000);
+        
+        let result = [];
+        if (jo > 0) result.push(`${jo}조`);
+        if (eok > 0) result.push(`${eok}억`);
+        return result.join(' ') + " BP";
+    }
+
+    // 핵심 수수료 계산 실시간 반영 로직
+    function calculate() {
+        const inputVal = parseFloat(document.getElementById('price-input').value);
+        const hint = document.getElementById('live-hint');
+        
+        if (isNaN(inputVal) || inputVal <= 0) {
+            hint.innerText = "";
+            document.getElementById('res-receive').innerText = "0 BP";
+            return;
+        }
+
+        // 1조 단위 기준으로 실제 BP 환산
+        const realBP = intPrice = Math.round(inputVal * 1000000000000);
+        hint.innerText = `인식된 금액: ${realBP.toLocaleString()} BP`;
+
+        // 총 할인율 합산
+        const totalDiscount = (hasPc ? 30 : 0) + (hasTop ? 20 : 0) + couponRate;
+        document.getElementById('res-discount').innerText = `${totalDiscount}%`;
+
+        # 실제 유저가 내야 하는 최종 수수료율 계산
+        const actualFeeRate = 40 * (1 - (totalDiscount / 100));
+        document.getElementById('res-fee-rate').innerText = `${actualFeeRate.toFixed(1).replace('.0', '')}%`;
+
+        // 최종 수령 금액 계산 (반올림 처리 일치)
+        const receiveAmount = Math.round(realBP * (1 - (actualFeeRate / 100)));
+        document.getElementById('res-receive').innerText = `${receiveAmount.toLocaleString()} BP (${formatKorean(receiveAmount)})`;
+    }
+
+    // 초기 화면 로드 시 계산기 한 번 돌려주기
+    calculate();
+</script>
+</body>
+</html>
